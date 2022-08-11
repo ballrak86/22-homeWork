@@ -1,0 +1,17 @@
+---
+# tasks file for common
+- name: install epel
+  yum:
+    name: epel-release
+    state: present
+
+- name: install openvpn iperf3
+  yum:
+    name:
+      - openvpn
+      - iperf3
+    state: present
+
+- name: disable selinux
+  selinux:
+    state: disabled

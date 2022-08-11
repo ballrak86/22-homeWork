@@ -1,0 +1,16 @@
+---
+- hosts: client
+  vars:
+    work_mode: tun
+  become: true
+  roles:
+    - common
+    - client
+
+- hosts: server
+  vars:
+    work_mode: tun
+  become: true
+  roles: 
+    - common
+    - server

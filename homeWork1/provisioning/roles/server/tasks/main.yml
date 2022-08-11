@@ -1,0 +1,24 @@
+---
+# tasks file for server
+- name: create static key
+  shell:
+    cmd: openvpn --genkey --secret /etc/openvpn/static.key
+
+- name: create server.conf
+  template:
+    src: server.conf
+    dest: /etc/openvpn/server.conf
+  notify:
+    - restart openvpn
+
+- name: enable/start openvpn
+  systemd:
+    name: openvpn@server
+    enabled: yes
+    state: started
+
+- name: Copy sert
+  fetch:
+    src: /etc/openvpn/static.key
+    dest: ../
+    flat: yes

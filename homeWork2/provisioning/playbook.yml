@@ -1,0 +1,73 @@
+---
+- name: openvpn2
+  become: true
+  gather_facts: false
+  hosts:
+    all
+
+  tasks:
+  - name: set up asynchronous routing
+    sysctl:
+      name: net.ipv4.conf.all.rp_filter
+      value: '0'
+      state: present
+
+  - name: install epel
+    yum:
+      name: epel-release
+      state: present
+
+  - name: install openvpn easy-rsa
+    yum:
+      name:
+        - openvpn
+        - easy-rsa
+      state: present
+
+  - name: disable selinux
+    selinux:
+      state: disabled
+
+  - name: init pki
+    shell:
+      cmd: /usr/share/easy-rsa/3/easyrsa init-pki
+    args:
+      chdir: /etc/openvpn/
+
+  - name: create cert for server
+    shell: |
+      echo 'rasvpn' | /usr/share/easy-rsa/3/easyrsa build-ca nopass
+      echo 'rasvpn' | /usr/share/easy-rsa/3/easyrsa gen-req server nopass
+      echo 'yes' | /usr/share/easy-rsa/3/easyrsa sign-req server server
+      /usr/share/easy-rsa/3/easyrsa gen-dh
+      openvpn --genkey --secret ta.key
+    args:
+      chdir: /etc/openvpn/
+
+  - name : create cert for client
+    shell: |
+      echo 'client' | /usr/share/easy-rsa/3/easyrsa gen-req client nopass
+      echo 'yes' | /usr/share/easy-rsa/3/easyrsa sign-req client client
+    args:
+      chdir: /etc/openvpn/
+
+  - name: create server.conf
+    template:
+      src: server.conf
+      dest: /etc/openvpn/server.conf
+
+  - name: start openvpn@server
+    systemd:
+      name: openvpn@server
+      enabled: yes
+      state: started
+  
+  - name: Copy sert
+    fetch:
+      src: "{{ item }}"
+      dest: ../
+      flat: yes
+    with_items:
+      - /etc/openvpn/pki/ca.crt
+      - /etc/openvpn/pki/issued/client.crt
+      - /etc/openvpn/pki/private/client.key
